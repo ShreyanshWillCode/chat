@@ -1,47 +1,50 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify, render_template
 import requests
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+load_dotenv()  # .env file load kar dega
 
 app = Flask(__name__)
 
-# Get API key and base URL from environment variables
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
+API_KEY = os.getenv("OPENROUTER_API_KEY")
+BASE_URL = os.getenv("OPENAI_BASE_URL")
 
-print("KEY FOUND:", "Yes" if OPENROUTER_API_KEY else "No")  # Debug to check key presence
+if not API_KEY or not BASE_URL:
+    raise Exception("API Key or Base URL not set in environment variables!")
 
-@app.route("/")
+headers = {
+    "Authorization": f"Bearer {API_KEY}",
+    "Content-Type": "application/json"
+}
+
+@app.route('/')
 def home():
-    return render_template("index.html")  # Make sure you have this HTML file
+    return render_template('index.html')  # Make sure you have index.html in templates/
 
-@app.route("/get")
+@app.route('/get')
 def chatbot_response():
-    user_msg = request.args.get("msg")
+    user_msg = request.args.get('msg')
+    if not user_msg:
+        return jsonify({"error": "No message sent"}), 400
 
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json"
+    data = {
+        "model": "openai/chatgpt-4",
+        "messages": [{"role": "user", "content": user_msg}],
+        "max_tokens": 100,
+        "temperature": 0.7,
     }
 
-    payload = {
-        "model": "openai/gpt-3.5-turbo",
-        "messages": [
-            {"role": "user", "content": user_msg}
-        ]
-    }
-
-    response = requests.post(f"{OPENAI_BASE_URL}/chat/completions", headers=headers, json=payload)
+    response = requests.post(f"{BASE_URL}/chat/completions", headers=headers, json=data)
 
     if response.status_code == 200:
-        data = response.json()
-        return data["choices"][0]["message"]["content"]
+        res_json = response.json()
+        # Adjust this according to the API response structure
+        answer = res_json['choices'][0]['message']['content']
+        return jsonify({"response": answer})
     else:
-        print(f"Error code: {response.status_code} - {response.text}")
-        return "Sorry, something went wrong."
+        return jsonify({"error": f"API request failed with status {response.status_code}", "details": response.text}), 500
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     app.run(debug=True)
