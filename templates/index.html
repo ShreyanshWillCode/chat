@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f1f1;
+      padding: 20px;
+    }
+    #chatbox {
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      height: 500px;
+      overflow-y: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .user, .bot {
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .user {
+      background-color: #d1e7dd;
+      text-align: right;
+    }
+    .bot {
+      background-color: #f8d7da;
+      text-align: left;
+    }
+    #inputBox {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    #msgInput {
+      width: 80%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #sendBtn {
+      padding: 10px 20px;
+      margin-left: 10px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    #sendBtn:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+
+  <h2 style="text-align: center;">Chatbot with OpenRouter API</h2>
+
+  <div id="chatbox"></div>
+
+  <div id="inputBox">
+    <input type="text" id="msgInput" placeholder="Type a message..." />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const msgInput = document.getElementById("msgInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function addMessage(message, className) {
+      const div = document.createElement("div");
+      div.className = className;
+      div.textContent = message;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    sendBtn.addEventListener("click", async () => {
+      const userMsg = msgInput.value.trim();
+      if (userMsg === "") return;
+
+      addMessage("You: " + userMsg, "user");
+      msgInput.value = "";
+
+      try {
+        const res = await fetch(`/get?msg=${encodeURIComponent(userMsg)}`);
+        const botMsg = await res.text();
+        addMessage("Bot: " + botMsg, "bot");
+      } catch (error) {
+        addMessage("Bot: Sorry, something went wrong.", "bot");
+        console.error(error);
+      }
+    });
+
+    msgInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        sendBtn.click();
+      }
+    });
+  </script>
+
+</body>
+</html>
