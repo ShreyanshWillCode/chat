@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chatbot</title>
+  <title>Direct OpenRouter API Chat</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -56,11 +56,18 @@
     #sendBtn:hover {
       background: #0056b3;
     }
+    .info {
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #e7f3fe;
+      border-left: 6px solid #2196F3;
+    }
   </style>
 </head>
 <body>
 
-  <h2 style="text-align: center;">Chatbot with OpenRouter API</h2>
+  <h2 style="text-align: center;">Direct OpenRouter API Chat</h2>
+  <p class="info">This page makes API calls directly to OpenRouter from your browser.</p>
 
   <div id="chatbox"></div>
 
@@ -73,6 +80,11 @@
     const chatbox = document.getElementById("chatbox");
     const msgInput = document.getElementById("msgInput");
     const sendBtn = document.getElementById("sendBtn");
+    
+    // OpenRouter API Key - normally you wouldn't put this in front-end code
+    // This is just for testing purposes
+    const API_KEY = "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";
+    const API_URL = "https://openrouter.ai/api/v1/chat/completions";
 
     function addMessage(message, className) {
       const div = document.createElement("div");
@@ -97,24 +109,42 @@
       chatbox.scrollTop = chatbox.scrollHeight;
 
       try {
-        const res = await fetch(`/get?msg=${encodeURIComponent(userMsg)}`);
+        // Make direct API call to OpenRouter
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:5000"
+          },
+          body: JSON.stringify({
+            model: "anthropic/claude-3-haiku",  // Using a different model
+            messages: [
+              { role: "user", content: userMsg }
+            ]
+          })
+        });
+        
         // Remove typing indicator
         chatbox.removeChild(typingDiv);
         
-        if (!res.ok) {
-          const errorText = await res.text();
-          throw new Error(`Server responded with ${res.status}: ${errorText}`);
+        if (!response.ok) {
+          const errorData = await response.text();
+          console.error("API Error:", response.status, errorData);
+          throw new Error(`API Error ${response.status}: ${errorData}`);
         }
         
-        const botMsg = await res.text();
-        addMessage("Bot: " + botMsg, "bot");
+        const result = await response.json();
+        const botMessage = result.choices[0].message.content;
+        
+        addMessage("Bot: " + botMessage, "bot");
       } catch (error) {
         // Remove typing indicator if it's still there
         if (typingDiv.parentNode) {
           chatbox.removeChild(typingDiv);
         }
         
-        addMessage("Bot: Sorry, something went wrong: " + error.message, "bot");
+        addMessage("Bot Error: " + error.message, "bot");
         console.error(error);
       }
     });
@@ -124,7 +154,10 @@
         sendBtn.click();
       }
     });
+    
+    // Add a welcome message
+    addMessage("Bot: Hello! I'm powered by OpenRouter. How can I help you today?", "bot");
   </script>
 
 </body>
-</html>
+</html> 
